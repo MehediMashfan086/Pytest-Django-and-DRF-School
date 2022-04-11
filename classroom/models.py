@@ -5,7 +5,11 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 
-
+def validate_negative(value):
+    if value < 0:
+        raise ValidationError(
+            _("%(value)s is not an posituve number"), params={"value": value},
+        )
 
 
 class Student(models.Model):
@@ -14,11 +18,15 @@ class Student(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
 
+    username = models.SlugField(blank=True, null=True)
+
     admission_number = models.IntegerField(unique=True)
 
     is_qualified = models.BooleanField(default=False)
 
-    average_score = models.FloatField(blank=True, null=True)
+    average_score = models.FloatField(
+        blank=True, null=True, validators=[validate_negative]
+    )
 
     def __str__(self):
         """Unicode representation of Student."""
@@ -33,6 +41,10 @@ class Student(models.Model):
             return "Excellent"
         else:
             return "Error"
+
+    def save(self, *args, **kwargs):
+        self.username = slugify(self.first_name)
+        super(Student, self).save(*args, **kwargs)
 
 
 class Classroom(models.Model):
